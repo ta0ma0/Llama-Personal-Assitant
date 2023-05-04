@@ -1,3 +1,4 @@
+import sys
 import whisper
 import pyaudio
 import wave
@@ -6,8 +7,12 @@ from answer_window import answer_window, auto_close_window
 import time
 import logging
 import os
+import commands
 from db_module import write_to_db
 from datetime import datetime
+from strsimpy import Levenshtein
+
+levenshtein = Levenshtein()
 
 script_path = (os.path.dirname(os.path.realpath(__file__)))
 
@@ -26,7 +31,8 @@ WAVE_OUTPUT_FILENAME = "audio.wav"
 params = []
 AI_IMAGE = script_path + '/data/punk_icon_200x200.png'
 
- # Set up PyAudio
+
+# Set up PyAudio
 audio_f = pyaudio.PyAudio()
 stream = audio_f.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True,
                       frames_per_buffer=CHUNK)
@@ -38,8 +44,8 @@ def listen_write(RECORD_SECONDS):
     """
     say("im_listen.txt")
     logger.debug('Say "I litening before start recording')
+    time.sleep(1)  # Wait for festival to start and end speech
 
-    time.sleep(1)
     stream = audio_f.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
     frames = []
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
@@ -87,12 +93,27 @@ def say(file):
     logger.debug(f"Festival say from {file}")
 
 
-time.sleep(1)
-listen_write(5)
-question = decode(MODEL="medium")
-print(question)
-notify_send("Llama is Processing")
+listen_write(4)
+question = decode(MODEL="base")
+logger.debug(f"Question: {question}")
+
 logger.debug("Start query to Llama")
+question = question.lower()
+
+commands_dict = {
+    'open passwords': commands.open_keepass, 
+    'open mail': commands.open_thunderbird,
+    'open english': commands.open_flyweel
+    }
+
+for condition, function in commands_dict.items():
+    logger.debug(levenshtein.distance(question, condition))
+    if levenshtein.distance(question, condition) < 3:
+        logger.debug(f"{condition} is found in question {question}")
+        function()
+        sys.exit()
+
+notify_send("Llama is Processing")
 cmd = f'echo "{question}" | python3 llama.py'
 try:
     result = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
