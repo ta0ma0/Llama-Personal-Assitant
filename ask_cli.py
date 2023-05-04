@@ -68,6 +68,7 @@ def decode(MODEL):
     audio = whisper.load_audio("audio.wav")
     audio = whisper.pad_or_trim(audio)
     mel = whisper.log_mel_spectrogram(audio).to(model.device)
+    # Inpit languge setting
     options = whisper.DecodingOptions(fp16=False, language='en')
     result = whisper.decode(model, mel, options)
     logger.debug("End decode file in whisper")
@@ -76,7 +77,9 @@ def decode(MODEL):
 
 
 def notify_send(text):
-    cmd = ['notify-send', f'"{text}"', '-i', AI_IMAGE, '-t', '2000', '-a', 'Llama voice']
+    """Send notification to desktop"""
+    cmd = ['notify-send', f'"{text}"', '-i', AI_IMAGE, '-t', '2000', '-a', 
+           'Llama voice']
     subprocess.call(cmd, shell=False)
     return True
 
