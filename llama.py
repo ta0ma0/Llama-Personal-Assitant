@@ -6,7 +6,7 @@ import os
 
 
 home_dir=os.path.expanduser("~")
-print(home_dir)
+# print(home_dir)
 configuration = LlamaConfig()
 
 

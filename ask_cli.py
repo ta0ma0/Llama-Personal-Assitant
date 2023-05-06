@@ -3,7 +3,9 @@ import whisper
 import pyaudio
 import wave
 import subprocess
-from answer_window import answer_window, auto_close_window
+import app_window 
+from app_window import start_window
+from temp_window import temp_window_start
 import time
 import logging
 import os
@@ -72,7 +74,6 @@ def decode(MODEL):
     options = whisper.DecodingOptions(fp16=False, language='en')
     result = whisper.decode(model, mel, options)
     logger.debug("End decode file in whisper")
-    auto_close_window(result.text)
     return result.text
 
 
@@ -98,6 +99,7 @@ def say(file):
 
 listen_write(4)
 question = decode(MODEL="base")
+temp_window_start(question)
 logger.debug(f"Question: {question}")
 
 logger.debug("Start query to Llama")
@@ -106,17 +108,21 @@ question = question.lower()
 commands_dict = {
     'open passwords': commands.open_keepass, 
     'open mail': commands.open_thunderbird,
-    'open english': commands.open_flyweel
+    'open english': commands.open_flyweel,
+    'get started': commands.start_working,
+    'finish the job': commands.stop_working,
+    'open notes': commands.start_joplin
     }
 
 for condition, function in commands_dict.items():
     logger.debug(levenshtein.distance(question, condition))
-    if levenshtein.distance(question, condition) < 3:
+    if levenshtein.distance(question, condition) < 4:
         logger.debug(f"{condition} is found in question {question}")
         function()
         sys.exit()
 
 notify_send("Llama is Processing")
+logger.debug("Llama is Processing")
 cmd = f'echo "{question}" | python3 llama.py'
 try:
     result = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -125,11 +131,11 @@ except subprocess.CalledProcessError as e:
 answer = result.communicate()[0].decode('utf8')
 logger.debug("Llama is got answer")
 write_file_result(answer)
-answer_window(answer)
 current_date = datetime.now()
 data_for_db = []
 data_for_db.append(current_date)
 data_for_db.append(question)
-data_for_db.append(answer.split('A:')[1].replace('\n', ''))
-write_to_db(data_for_db)
+data_for_db.append(answer.split('A:')[1].replace('\n', '').strip())
+start_window(data_for_db)
+# write_to_db(data_for_db)
 logger.debug('End the program iteration')

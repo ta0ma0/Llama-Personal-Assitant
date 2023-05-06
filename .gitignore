@@ -164,3 +164,5 @@ data/punk_icon.png
 data/ai-black.png
 data/ai.png
 result.txt
+test_app.py
+test_window.py
